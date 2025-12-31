@@ -122,8 +122,8 @@ const ProjectCard = ({ project }) => {
           {message}
         </div>
       )}
-      <div className="outer min-w-[35vw] max-w-[35vw] min-h-full flex">
-        <div className="inner flex flex-col mx-3 mt-4 bg-white min-w-[35vw] max-w-[35vw] min-h-full rounded-lg">
+      <div className="outer w-full md:min-w-[35vw] md:max-w-[35vw] min-h-full flex px-3 md:px-0">
+        <div className="inner flex flex-col mt-4 bg-white w-full min-h-full rounded-lg">
           <div className="profile flex justify-between items-center p-2">
             <div
               onClick={() =>
