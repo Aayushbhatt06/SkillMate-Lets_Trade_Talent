@@ -247,7 +247,7 @@ const Navbar = () => {
         <div className="mx-auto flex items-center justify-between gap-2 px-3 md:px-4 py-2.5 md:py-3">
           <div className="flex items-center gap-2 flex-shrink-0 w-[120px] lg:w-[350px]">
             <h6
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/home")}
               className="text-sm md:text-base cursor-pointer font-semibold text-white whitespace-nowrap"
             >
               SkillMate

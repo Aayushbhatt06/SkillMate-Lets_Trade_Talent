@@ -13,6 +13,7 @@ import Notification from "./components/Notification";
 import Message from "./components/Message";
 import Profile_Inspect from "./components/Profile_Inspect";
 import Contribution from "./components/Contribution";
+import LandingPage from "./components/Landing";
 
 const Layout = () => {
   return (
@@ -29,6 +30,7 @@ const Layout = () => {
 };
 
 const router = createBrowserRouter([
+  { path: "/", element: <LandingPage /> },
   { path: "/login", element: <Login /> },
   { path: "/signup", element: <Signup /> },
 
@@ -40,7 +42,7 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "/", element: <Home /> },
+      { path: "/home", element: <Home /> },
       { path: "/message", element: <Home /> },
       { path: "/profile", element: <Profile /> },
       { path: "/profile/edit", element: <EditProfile /> },

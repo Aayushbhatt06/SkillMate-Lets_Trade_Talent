@@ -188,7 +188,7 @@ const Sidebar = () => {
       >
         <nav className="bg-slate-50 rounded-lg space-y-2 mt-12 md:mt-0 p-2">
           <Link
-            to="/"
+            to="/home"
             onClick={() => {
               setCurrent("Home");
               closeMobileMenu();

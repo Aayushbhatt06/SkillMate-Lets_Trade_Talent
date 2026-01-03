@@ -47,7 +47,7 @@ const Login = () => {
           image: data.data.image,
         };
         dispatch(login(userData));
-        navigate("/");
+        navigate("/home");
       } else {
         setErrorMsg(data.message || "Login failed");
       }
