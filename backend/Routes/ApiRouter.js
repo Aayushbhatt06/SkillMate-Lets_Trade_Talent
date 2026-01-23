@@ -7,7 +7,7 @@ const {
   addPost,
   fetchPosts,
   addComment,
-  like,
+  likePost,
 } = require("../Controllers/Posts.js");
 const addProject = require("../Controllers/addProject.js");
 const projectSkills = require("../Controllers/projectSkills.js");
@@ -20,7 +20,7 @@ router.post("/project", LoggedInOnly, uploader("image"), addProject);
 router.post("/post", LoggedInOnly, uploader("profileImage"), addPost);
 router.get("/fetchposts", fetchPosts);
 router.post("/comment", LoggedInOnly, addComment);
-router.post("/like", LoggedInOnly, like);
+router.post("/like", LoggedInOnly, likePost);
 router.get("/skillproject", projectSkills);
 router.get("/tagline", getTagLines);
 router.post("/fetchproject", LoggedInOnly, fetchProjects);

@@ -40,7 +40,7 @@ const PostCard = ({ post, navigate, timeAgo, setPosts, onConnect }) => {
       const updatedPost = data.updatedPost;
 
       setPosts((prevPosts) =>
-        prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p))
+        prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p)),
       );
     } catch (error) {
       console.log(error);
@@ -58,7 +58,7 @@ const PostCard = ({ post, navigate, timeAgo, setPosts, onConnect }) => {
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ comment: newComment, postId: post._id }),
-        }
+        },
       );
 
       if (!res.ok) return;
@@ -67,7 +67,7 @@ const PostCard = ({ post, navigate, timeAgo, setPosts, onConnect }) => {
       const updatedPost = data.post;
 
       setPosts((prevPosts) =>
-        prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p))
+        prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p)),
       );
       localStorage.removeItem("Posts");
       setNewComment("");
@@ -79,10 +79,18 @@ const PostCard = ({ post, navigate, timeAgo, setPosts, onConnect }) => {
 
   const handleShare = () => {
     navigator.clipboard.writeText(
-      `${import.meta.env.VITE_FRONTEND_URL}/load-post?postId=${post._id}`
+      `${import.meta.env.VITE_FRONTEND_URL}/load-post?postId=${post._id}`,
     );
     setShareLogo(true);
     setTimeout(() => setShareLogo(false), 5000);
+  };
+
+  const isVideo = (url) => {
+    return /\.(mp4|webm|ogg|mov)$/i.test(url);
+  };
+
+  const isImage = (url) => {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
   };
 
   return (
@@ -119,14 +127,26 @@ const PostCard = ({ post, navigate, timeAgo, setPosts, onConnect }) => {
 
       {post.image && (
         <div
-          className="image cursor-pointer"
+          className="cursor-pointer bg-black"
           onDoubleClick={() => navigate(`/load-post?postId=${post._id}`)}
         >
-          <img
-            src={post.image}
-            alt="Post content"
-            className="w-full h-100 object-cover"
-          />
+          {isVideo(post.image) ? (
+            <video
+              src={post.image}
+              className="w-full object-cover rounded"
+              controls={true}
+              muted
+              loop
+              playsInline
+              autoPlay
+            />
+          ) : (
+            <img
+              src={post.image}
+              alt="Post content"
+              className="w-full max-h-[500px] object-cover rounded"
+            />
+          )}
         </div>
       )}
 
@@ -137,7 +157,7 @@ const PostCard = ({ post, navigate, timeAgo, setPosts, onConnect }) => {
               <button
                 onClick={handleLike}
                 className={`flex items-center space-x-1 hover:text-red-500 ${toggleLikeStyle(
-                  post.likedByUser
+                  post.likedByUser,
                 )}`}
               >
                 <Heart size={20} />

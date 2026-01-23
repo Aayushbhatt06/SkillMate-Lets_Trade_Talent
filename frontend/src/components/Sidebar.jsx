@@ -8,6 +8,8 @@ import {
   PieChart,
   Menu,
   X,
+  Film,
+  ImageUp,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -39,7 +41,7 @@ const Sidebar = () => {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(userId ? { userId } : {}),
-        }
+        },
       );
 
       const data = await res.json();
@@ -82,7 +84,7 @@ const Sidebar = () => {
           next = [conn, ...prev];
         }
         return [...next].sort(
-          (a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt)
+          (a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt),
         );
       });
     };
@@ -99,7 +101,7 @@ const Sidebar = () => {
   useEffect(() => {
     if (SearchConn.trim().length > 1) {
       const filtered = connections.filter((conn) =>
-        conn.user.name.toLowerCase().includes(SearchConn.toLowerCase())
+        conn.user.name.toLowerCase().includes(SearchConn.toLowerCase()),
       );
       setProcessedConn(filtered);
     } else {
@@ -241,6 +243,32 @@ const Sidebar = () => {
           >
             <PieChart size={18} className="sm:w-5 sm:h-5" />
             <span>Contributions</span>
+          </Link>
+          <Link
+            to="/shorts"
+            onClick={() => {
+              setCurrent("shorts");
+              closeMobileMenu();
+            }}
+            className={`flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base ${
+              current === "shorts" ? "text-blue-600" : "text-gray-700"
+            } hover:bg-gray-100 rounded-lg transition-colors duration-300 !no-underline`}
+          >
+            <Film size={18} className="sm:w-5 sm:h-5" />
+            <span>Shorts</span>
+          </Link>
+          <Link
+            to="/upshort"
+            onClick={() => {
+              setCurrent("upshort");
+              closeMobileMenu();
+            }}
+            className={`flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base ${
+              current === "upshort" ? "text-blue-600" : "text-gray-700"
+            } hover:bg-gray-100 rounded-lg transition-colors duration-300 !no-underline`}
+          >
+            <ImageUp size={18} className="sm:w-5 sm:h-5" />
+            <span>Upload Short</span>
           </Link>
         </nav>
 

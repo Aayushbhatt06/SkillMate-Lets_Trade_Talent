@@ -14,6 +14,8 @@ import Message from "./components/Message";
 import Profile_Inspect from "./components/Profile_Inspect";
 import Contribution from "./components/Contribution";
 import LandingPage from "./components/Landing";
+import Shorts from "./components/Shorts";
+import UpShort from "./components/UpShort";
 
 const Layout = () => {
   return (
@@ -52,6 +54,8 @@ const router = createBrowserRouter([
       { path: "/chat", element: <Message /> },
       { path: "/load-profile", element: <Profile_Inspect /> },
       { path: "/contribution", element: <Contribution /> },
+      { path: "/shorts", element: <Shorts /> },
+      { path: "/upshort", element: <UpShort /> },
     ],
   },
 ]);

@@ -129,32 +129,48 @@ const addComment = async (req, res) => {
   }
 };
 
-const like = async (req, res) => {
+const likePost = async (req, res) => {
   try {
     const userId = req.user._id;
     const { postId } = req.body;
 
     if (!postId) {
-      return res
-        .status(400)
-        .json({ message: "Post Id is required", success: false });
+      return res.status(400).json({
+        message: "Post Id is required",
+        success: false,
+      });
     }
 
     const post = await postModel.findById(postId);
     if (!post) {
-      return res
-        .status(404)
-        .json({ message: "Post not found", success: false });
+      return res.status(404).json({
+        message: "Post not found",
+        success: false,
+      });
     }
 
-    const existingLike = await Like.findOne({ userId, postId });
+    const existingLike = await Like.findOne({
+      userId,
+      targetId: postId,
+      targetType: "Post",
+    });
+
+    let liked;
 
     if (existingLike) {
-      await existingLike.deleteOne();
+      // UNLIKE
+      await Like.deleteOne({ _id: existingLike._id });
       post.like = Math.max(post.like - 1, 0);
+      liked = false;
     } else {
-      await Like.create({ userId, postId });
+      // LIKE
+      await Like.create({
+        userId,
+        targetId: postId,
+        targetType: "Post",
+      });
       post.like += 1;
+      liked = true;
     }
 
     await post.save();
@@ -163,18 +179,24 @@ const like = async (req, res) => {
       .findById(postId)
       .populate("userId", "name email image");
 
-    const comments = await Comment.find({ postId }).sort({ createdAt: -1 });
+    const comments = await Comment.find({ postId }).sort({
+      createdAt: -1,
+    });
 
     return res.status(200).json({
-      message: existingLike ? "Like removed" : "Like added successfully",
+      message: liked ? "Like added successfully" : "Like removed",
       success: true,
       updatedPost: {
         ...updatedPost.toObject(),
         comments,
+        likedByMe: liked,
       },
     });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", success: false });
+    return res.status(500).json({
+      message: "Server error",
+      success: false,
+    });
   }
 };
 
@@ -214,5 +236,5 @@ module.exports = {
   addPost,
   fetchPosts,
   addComment,
-  like,
+  likePost,
 };

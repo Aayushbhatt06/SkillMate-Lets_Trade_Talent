@@ -1,11 +1,26 @@
 const mongoose = require("mongoose");
 
-const likeSchema = new mongoose.Schema({
-  postId: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  createdAt: { type: Date, default: Date.now },
-});
+const likeSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    targetId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
+    targetType: {
+      type: String,
+      enum: ["Post", "Short"],
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
 
-likeSchema.index({ postId: 1, userId: 1 }, { unique: true });
+// prevents duplicate likes
+likeSchema.index({ userId: 1, targetId: 1, targetType: 1 }, { unique: true });
 
 module.exports = mongoose.model("Like", likeSchema);

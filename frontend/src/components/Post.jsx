@@ -74,7 +74,7 @@ const Post = () => {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ postId }),
-        }
+        },
       );
       const data = await res.json();
 
@@ -115,10 +115,18 @@ const Post = () => {
   }, []);
   const handleShare = () => {
     navigator.clipboard.writeText(
-      `${import.meta.env.VITE_FRONTEND_URL}/load-post?postId=${postId}`
+      `${import.meta.env.VITE_FRONTEND_URL}/load-post?postId=${postId}`,
     );
     setShareLogo(true);
     setTimeout(() => setShareLogo(false), 5000);
+  };
+
+  const isVideo = (url) => {
+    return /\.(mp4|webm|ogg|mov)$/i.test(url);
+  };
+
+  const isImage = (url) => {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
   };
 
   return (
@@ -152,13 +160,27 @@ const Post = () => {
             </button>
           </div>
 
-          {image ? (
-            <img
-              className="w-full max-w-[58vw] rounded-lg object-cover mb-4"
-              src={image}
-              alt="Post"
-            />
-          ) : null}
+          {image && (
+            <div className="w-full max-w-[58vw] rounded-lg overflow-hidden mb-4 bg-black">
+              {isVideo(image) ? (
+                <video
+                  src={image}
+                  className="w-full object-cover rounded"
+                  controls={true}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                />
+              ) : (
+                <img
+                  src={image}
+                  alt="Post"
+                  className="w-full max-h-[70vh] object-cover"
+                />
+              )}
+            </div>
+          )}
 
           <div className="title text-2xl font-bold mb-2">{title}</div>
           <div className="desc text-lg text-gray-700 mb-4">{desc}</div>
