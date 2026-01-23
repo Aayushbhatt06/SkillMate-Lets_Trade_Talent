@@ -13,6 +13,7 @@ const addProject = require("../Controllers/addProject.js");
 const projectSkills = require("../Controllers/projectSkills.js");
 const getTagLines = require("../Controllers/tagline.js");
 const uploader = require("../Middlewares/multer_upload.js");
+const { uploadShort, getShorts } = require("../Controllers/shortController.js");
 
 router.post("/addskill", LoggedInOnly, addSkills);
 router.post("/findskilled", findUserSk);
@@ -25,4 +26,7 @@ router.get("/skillproject", projectSkills);
 router.get("/tagline", getTagLines);
 router.post("/fetchproject", LoggedInOnly, fetchProjects);
 router.post("/load-post", LoggedInOnly, fetchSinglePost);
+
+router.post("/short", LoggedInOnly, uploader("video"), uploadShort);
+router.get("/getshort", LoggedInOnly, getShorts);
 module.exports = router;
