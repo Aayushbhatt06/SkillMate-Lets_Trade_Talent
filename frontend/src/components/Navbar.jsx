@@ -10,22 +10,27 @@ const DEFAULT = "Let's Trade Talent!!!";
 const Navbar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // typing animation state
   const [tagline, setTagline] = useState("");
-  const [tags, setTags] = useState([]);
   const typingRef = useRef(null);
   const cycleRef = useRef(null);
   const isMounted = useRef(true);
-  const lastIndexRef = useRef(-1);
+
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [searchRes, setSearchRes] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
+
   const menuRef = useRef(null);
 
   const [searchInput, setSearch] = useState("");
   const handelOnChange = (e) => setSearch(e.target.value);
 
+  /* =========================
+     CLICK OUTSIDE MENU
+  ========================== */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -37,6 +42,9 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /* =========================
+     SEARCH DEBOUNCE
+  ========================== */
   useEffect(() => {
     const query = searchInput.trim();
 
@@ -64,7 +72,7 @@ const Navbar = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ search }),
-        }
+        },
       );
       const data = await res.json();
       if (data.success) {
@@ -78,6 +86,9 @@ const Navbar = () => {
     }
   };
 
+  /* =========================
+     TYPING ANIMATION (LOOP)
+  ========================== */
   const clearTyping = () => {
     if (typingRef.current) {
       clearInterval(typingRef.current);
@@ -89,6 +100,7 @@ const Navbar = () => {
     clearTyping();
     let i = 0;
     setTagline("");
+
     typingRef.current = setInterval(() => {
       if (!isMounted.current) return clearTyping();
       i += 1;
@@ -97,60 +109,17 @@ const Navbar = () => {
     }, speed);
   };
 
-  const nextRandomIndex = (len) => {
-    if (len <= 1) return 0;
-    let idx = Math.floor(Math.random() * len);
-    if (idx === lastIndexRef.current) {
-      idx = (idx + 1) % len;
-    }
-    lastIndexRef.current = idx;
-    return idx;
-  };
-
-  const getTag = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/tagline`
-      );
-      if (!res.ok) {
-        typeText(DEFAULT);
-        return;
-      }
-
-      let data = null;
-      try {
-        data = await res.json();
-      } catch {
-        typeText(DEFAULT);
-        return;
-      }
-
-      const list = Array.isArray(data?.tagLines)
-        ? data.tagLines.filter(Boolean)
-        : [];
-      if (!list.length) {
-        setTags([]);
-        typeText(DEFAULT);
-        return;
-      }
-      setTags(list);
-      const firstIdx = nextRandomIndex(list.length);
-      typeText(list[firstIdx] || DEFAULT);
-    } catch {
-      typeText(DEFAULT);
-    }
-  };
-
   useEffect(() => {
     isMounted.current = true;
-    getTag();
 
+    // initial typing
+    typeText(DEFAULT);
+
+    // repeat typing forever (same as before, but single text)
     const cycleMs = 6000;
     cycleRef.current = setInterval(() => {
       clearTyping();
-      const list = tags && tags.length ? tags : [DEFAULT];
-      const idx = nextRandomIndex(list.length);
-      setTimeout(() => typeText(list[idx] || DEFAULT), 100);
+      setTimeout(() => typeText(DEFAULT), 100);
     }, cycleMs);
 
     return () => {
@@ -158,18 +127,24 @@ const Navbar = () => {
       clearTyping();
       if (cycleRef.current) clearInterval(cycleRef.current);
     };
-  }, [tags.length]);
+  }, []);
 
+  /* =========================
+     LOGOUT
+  ========================== */
   const handleLogout = async () => {
     await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/logout`, {
       method: "POST",
       credentials: "include",
     });
-    
+
     dispatch(logout());
     window.location.reload();
   };
 
+  /* =========================
+     SEND CONNECTION
+  ========================== */
   const handleConnection = async (receiverId) => {
     const res = await sendConnection(receiverId);
 
@@ -192,13 +167,12 @@ const Navbar = () => {
       {message && (
         <div
           className={`
-      fixed bottom-6 right-6 z-50
-      px-5 py-3 rounded-xl shadow-lg
-      text-white font-semibold text-sm
-      backdrop-blur-md 
-      animate-bounce
-      ${error ? "bg-red-500/80" : "bg-green-500/80"}
-    `}
+            fixed bottom-6 right-6 z-50
+            px-5 py-3 rounded-xl shadow-lg
+            text-white font-semibold text-sm
+            backdrop-blur-md animate-bounce
+            ${error ? "bg-red-500/80" : "bg-green-500/80"}
+          `}
         >
           {message}
         </div>
@@ -208,9 +182,9 @@ const Navbar = () => {
         className={`users ${
           searchInput.length > 2 ? "block" : "hidden"
         } fixed left-1/2 -translate-x-1/2 top-16 md:top-20
-  w-[90vw] md:w-[30vw] max-h-[350px] overflow-y-auto 
-  z-50 bg-white shadow-lg border border-gray-200 rounded-lg
-  divide-y divide-gray-100`}
+        w-[90vw] md:w-[30vw] max-h-[350px] overflow-y-auto 
+        z-50 bg-white shadow-lg border border-gray-200 rounded-lg
+        divide-y divide-gray-100`}
       >
         {searchRes.map((res) => (
           <div
@@ -229,9 +203,7 @@ const Navbar = () => {
             </div>
 
             <button
-              onClick={() => {
-                handleConnection(res._id);
-              }}
+              onClick={() => handleConnection(res._id)}
               className="bg-blue-600 hover:bg-blue-700 transition text-white px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm shadow-sm whitespace-nowrap"
             >
               Connect

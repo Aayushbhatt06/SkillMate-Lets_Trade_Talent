@@ -1,6 +1,7 @@
 const connectionModel = require("../Models/Connection");
 const messages = require("../Models/messages");
 const userModel = require("../Models/User");
+const { client } = require("../utils/client");
 
 const conReq = async (req, res) => {
   try {
@@ -184,7 +185,7 @@ const fetchConReq = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const filtered = connections.filter(
-      (con) => con.users[1]?._id.toString() === userId
+      (con) => con.users[1]?._id.toString() === userId,
     );
 
     return res.status(200).json({
@@ -215,6 +216,17 @@ const fetchConnections = async (req, res) => {
     }
 
     const targetUserId = userId || loggedInUserId;
+    const cacheKey = `connections:${targetUserId}`;
+
+    const cachedConnections = await client.get(cacheKey);
+
+    if (cachedConnections) {
+      return res.status(200).json({
+        message: "Fetched Successfully (cache)",
+        success: true,
+        connections: JSON.parse(cachedConnections),
+      });
+    }
 
     const connections = await connectionModel
       .find({ users: targetUserId, fulfilled: true })
@@ -224,7 +236,7 @@ const fetchConnections = async (req, res) => {
     const formattedConnections = connections
       .map((conn) => {
         const otherUser = conn.users.find(
-          (u) => u._id.toString() !== targetUserId.toString()
+          (u) => u._id.toString() !== targetUserId.toString(),
         );
 
         if (!otherUser) return null;
@@ -239,6 +251,12 @@ const fetchConnections = async (req, res) => {
         };
       })
       .filter(Boolean);
+
+    await client.setEx(
+      cacheKey,
+      60, // ⏱️ 60 seconds TTL
+      JSON.stringify(formattedConnections),
+    );
 
     return res.status(200).json({
       message: "Fetched Successfully",
