@@ -1,6 +1,7 @@
 const messageDb = require("../../Models/messages");
 const Connection = require("../../Models/Connection");
 const { connection } = require("mongoose");
+const { client } = require("../../utils/client");
 
 const getRoomId = (userA, userB) =>
   [userA.toString(), userB.toString()].sort().join("@");
@@ -11,17 +12,25 @@ const loadMessages = async (req, res) => {
     const userId = req.user._id;
 
     const roomId = getRoomId(id, userId);
+    const cacheKey = `messages:${roomId}`;
+
+    const cachedMessages = await client.get(cacheKey);
+    if (cachedMessages) {
+      return res.status(200).json({ ...JSON.parse(cachedMessages) });
+    }
 
     const chats = await messageDb
       .find({ roomId })
       .sort({ createdAt: 1 })
       .populate("sender", "name image _id");
 
-    return res.status(200).json({
+    const response = {
       message: "Messages fetched successfully",
       success: true,
-      chats,
-    });
+      chats: chats,
+    };
+    await client.setEx(cacheKey, 15 * 60, JSON.stringify(response));
+    return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -63,7 +72,7 @@ const newMessage = async (req, res) => {
         $set: { lastMessage: text, lastMessageAt: new Date() },
         $inc: { [`unreadCounts.${otherUserId}`]: 1 },
       },
-      { new: true }
+      { new: true },
     );
 
     return res.status(200).json({
@@ -97,7 +106,7 @@ const markAsRead = async (req, res) => {
       },
       {
         $push: { readBy: userId },
-      }
+      },
     );
     const conn = await Connection.findOneAndUpdate(
       { roomId },
@@ -106,7 +115,7 @@ const markAsRead = async (req, res) => {
           [`unreadCounts.${userId.toString()}`]: 0,
         },
       },
-      { new: true }
+      { new: true },
     );
 
     return res.status(200).json({

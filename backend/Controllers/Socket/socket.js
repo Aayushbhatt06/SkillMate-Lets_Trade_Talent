@@ -4,6 +4,7 @@ const messageDb = require("../../Models/messages");
 const Connection = require("../../Models/Connection");
 require("dotenv").config();
 const cookie = require("cookie");
+const { client } = require("../../utils/client");
 
 const getRoomId = (userA, userB) =>
   [userA.toString(), userB.toString()].sort().join("@");
@@ -60,17 +61,26 @@ const initializeSocket = (server) => {
       if (!to || !text) return;
 
       const otherUserId = to.toString();
-      const roomId = getRoomId(userId, otherUserId);
+      const senderId = userId.toString();
+      const roomId = getRoomId(senderId, otherUserId);
+      const cacheMsgKey = `messages:${roomId}`;
 
       try {
         const msg = await messageDb.create({
           roomId,
-          sender: userId,
+          sender: senderId,
           message: text,
-          readBy: [userId],
+          readBy: [senderId],
         });
 
         const populatedMsg = await msg.populate("sender", "name image _id");
+
+        const cachedChats = await client.get(cacheMsgKey);
+        if (cachedChats) {
+          const parsed = JSON.parse(cachedChats);
+          parsed.chats.push(populatedMsg);
+          await client.setEx(cacheMsgKey, 15 * 60, JSON.stringify(parsed));
+        }
 
         const conn = await Connection.findOneAndUpdate(
           { roomId },
@@ -83,14 +93,13 @@ const initializeSocket = (server) => {
               [`unreadCounts.${otherUserId}`]: 1,
             },
           },
-          { new: true }
+          { new: true },
         ).populate("users", "name image");
 
         const updatedConn = (targetUserId) => {
           const otherUser = conn.users.find(
-            (u) => u._id.toString() !== targetUserId.toString()
+            (u) => u._id.toString() !== targetUserId.toString(),
           );
-
           if (!otherUser) return null;
 
           return {
@@ -103,16 +112,58 @@ const initializeSocket = (server) => {
           };
         };
 
-        const payloadForSender = updatedConn(userId);
+        const updateConnectionsCache = async ({
+          targetUserId,
+          roomId,
+          lastMessage,
+          lastMessageAt,
+          unreadDelta,
+        }) => {
+          const cacheKey = `connections:${targetUserId}`;
+          const cached = await client.get(cacheKey);
+          if (!cached) return;
+
+          const connections = JSON.parse(cached);
+
+          const updated = connections.map((c) => {
+            if (c.roomId !== roomId) return c;
+            return {
+              ...c,
+              lastMessage,
+              lastMessageAt,
+              unreadCount: (c.unreadCount || 0) + unreadDelta,
+            };
+          });
+
+          await client.setEx(cacheKey, 60, JSON.stringify(updated));
+        };
+
+        await updateConnectionsCache({
+          targetUserId: senderId,
+          roomId,
+          lastMessage: text,
+          lastMessageAt: conn.lastMessageAt,
+          unreadDelta: 0,
+        });
+
+        await updateConnectionsCache({
+          targetUserId: otherUserId,
+          roomId,
+          lastMessage: text,
+          lastMessageAt: conn.lastMessageAt,
+          unreadDelta: 1,
+        });
+
+        const payloadForSender = updatedConn(senderId);
         const payloadForReceiver = updatedConn(otherUserId);
 
         if (payloadForSender) {
-          io.to(`user:${userId}`).emit("connectionUpdated", payloadForSender);
+          io.to(`user:${senderId}`).emit("connectionUpdated", payloadForSender);
         }
         if (payloadForReceiver) {
           io.to(`user:${otherUserId}`).emit(
             "connectionUpdated",
-            payloadForReceiver
+            payloadForReceiver,
           );
         }
 
@@ -147,7 +198,7 @@ const initializeSocket = (server) => {
           },
           {
             $push: { readBy: userId },
-          }
+          },
         );
 
         const conn = await Connection.findOneAndUpdate(
@@ -157,7 +208,7 @@ const initializeSocket = (server) => {
               [`unreadCounts.${userId}`]: 0,
             },
           },
-          { new: true }
+          { new: true },
         ).populate("users", "name image");
 
         io.to(roomId).emit("messagesRead", {
@@ -168,7 +219,7 @@ const initializeSocket = (server) => {
 
         const updatedConn = (targetUserId) => {
           const otherUser = conn.users.find(
-            (u) => u._id.toString() !== targetUserId.toString()
+            (u) => u._id.toString() !== targetUserId.toString(),
           );
 
           if (!otherUser) return null;
@@ -192,7 +243,7 @@ const initializeSocket = (server) => {
         if (payloadForReceiver) {
           io.to(`user:${otherUserId}`).emit(
             "connectionUpdated",
-            payloadForReceiver
+            payloadForReceiver,
           );
         }
       } catch (err) {

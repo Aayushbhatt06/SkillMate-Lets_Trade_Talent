@@ -1,5 +1,6 @@
 const contriModel = require("../Models/Proj_Contri");
 const projectModel = require("../Models/projects");
+const { client } = require("../utils/client");
 
 const sendContriReq = async (req, res) => {
   try {
@@ -120,10 +121,16 @@ const acceptContribution = async (req, res) => {
 const getMyProjectContributions = async (req, res) => {
   try {
     const userId = req.user._id;
-
+    const cacheKey = `contributions:${userId}`;
+    const cachedContributions = await client.get(cacheKey);
+    if (cachedContributions) {
+      return res.status(200).json(JSON.parse(cachedContributions));
+    }
     const projects = await projectModel.find({ userId });
 
     if (!projects.length) {
+      const emptyResponse = { success: true, data: [] };
+      await client.setEx(cacheKey, 300, JSON.stringify(emptyResponse));
       return res.status(200).json({
         success: true,
         data: [],
@@ -164,11 +171,12 @@ const getMyProjectContributions = async (req, res) => {
         requestedAt: contri.createdAt,
       });
     });
-
-    return res.status(200).json({
+    const response = {
       success: true,
       data: Array.from(projectMap.values()),
-    });
+    };
+    await client.setEx(cacheKey, 300, JSON.stringify(response));
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Get contributions error:", error);
     return res.status(500).json({

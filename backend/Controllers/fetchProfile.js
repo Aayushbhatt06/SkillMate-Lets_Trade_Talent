@@ -63,7 +63,7 @@ const fetchInspectProfile = async (req, res) => {
 
     const cacheKey = `user:profile:inspect:${id}`;
 
-    const cachedProfile = await client.get(cacheKey);
+    const   cachedProfile = await client.get(cacheKey);
     if (cachedProfile) {
       return res.json({
         ...JSON.parse(cachedProfile),
