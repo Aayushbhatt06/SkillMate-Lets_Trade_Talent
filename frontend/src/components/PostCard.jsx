@@ -69,7 +69,6 @@ const PostCard = ({ post, navigate, timeAgo, setPosts, onConnect }) => {
       setPosts((prevPosts) =>
         prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p)),
       );
-      localStorage.removeItem("Posts");
       setNewComment("");
       setShowComments(true);
     } catch (error) {

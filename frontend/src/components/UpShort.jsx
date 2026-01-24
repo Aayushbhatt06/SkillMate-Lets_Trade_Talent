@@ -136,7 +136,7 @@ const UpShort = () => {
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept="video/*"
+              accept=".webm,.mov,.mp4,.mkv"
               onChange={handleVideoChange}
             />
 

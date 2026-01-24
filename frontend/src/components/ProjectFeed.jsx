@@ -11,17 +11,9 @@ const ProjectFeed = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // Load cache first
+  // 🔥 Initial fetch
   useEffect(() => {
-    const cached = localStorage.getItem("ProjectsCache");
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      setProjects(parsed.projects || []);
-      setPage(parsed.page || 0);
-      setHasMore(parsed.hasMore ?? true);
-    } else {
-      fetchProjects(0);
-    }
+    fetchProjects(0);
   }, []);
 
   const fetchProjects = async (pageToFetch = page) => {
@@ -40,7 +32,7 @@ const ProjectFeed = () => {
             page: pageToFetch,
             limit: LIMIT,
           }),
-        }
+        },
       );
 
       const data = await res.json();
@@ -56,23 +48,10 @@ const ProjectFeed = () => {
         return;
       }
 
-      setProjects((prev) => {
-        const updated = [...prev, ...data.Projects];
-
-        localStorage.setItem(
-          "ProjectsCache",
-          JSON.stringify({
-            projects: updated,
-            page: pageToFetch + 1,
-            hasMore: data.hasMore,
-          })
-        );
-
-        return updated;
-      });
-
+      setProjects((prev) => [...prev, ...data.Projects]);
       setPage((prev) => prev + 1);
       setHasMore(data.hasMore);
+
       setError(false);
       setMessage("");
     } catch (err) {

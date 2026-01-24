@@ -57,7 +57,6 @@ const Post = () => {
       }
 
       setLike(data.updatedPost.like);
-      localStorage.removeItem("Posts");
     } catch (error) {
       setMessage(error);
       setError(true);
@@ -122,7 +121,7 @@ const Post = () => {
   };
 
   const isVideo = (url) => {
-    return /\.(mp4|webm|ogg|mov)$/i.test(url);
+    return /\.(mp4|webm|mov|quicktime|mkv)$/i.test(url);
   };
 
   const isImage = (url) => {

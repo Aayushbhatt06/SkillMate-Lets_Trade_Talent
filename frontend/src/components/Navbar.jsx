@@ -165,10 +165,7 @@ const Navbar = () => {
       method: "POST",
       credentials: "include",
     });
-    localStorage.removeItem("profileData");
-    localStorage.removeItem("ProjectsCache");
-    localStorage.removeItem("Posts");
-    localStorage.removeItem("connectionsData");
+    
     dispatch(logout());
     window.location.reload();
   };

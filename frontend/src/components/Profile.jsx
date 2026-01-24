@@ -2,19 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-const getCache = (key) => {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
-};
-
-const setCache = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
-};
-
 const Profile = () => {
   const navigate = useNavigate();
   const userId = useSelector((state) => state.user.id);
@@ -34,22 +21,8 @@ const Profile = () => {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const cachedProfile = getCache("profileData");
-    if (cachedProfile) {
-      setName(cachedProfile.user?.name || "");
-      setSkills(cachedProfile.user?.skills || []);
-      setBio(cachedProfile.user?.bio || "");
-      setImage(cachedProfile.user?.image || "image.png");
-      setPosts(cachedProfile.posts || []);
-      setProjects(cachedProfile.projects || []);
-      setPostCount(cachedProfile.posts?.length || 0);
-      setProjectCount(cachedProfile.projects?.length || 0);
-    }
-
-    const cachedConnections = getCache("connectionsData");
-    if (cachedConnections) {
-      setConnections(cachedConnections);
-    }
+    fetchProfileData();
+    fetchConnections();
   }, []);
 
   const fetchProfileData = async () => {
@@ -63,18 +36,18 @@ const Profile = () => {
 
       const data = await res.json();
 
-      setName(data.user.name || "");
-      setSkills(data.user.skills || []);
-      setBio(data.user.bio || "");
-      setImage(data.user.image || "image.png");
+      setName(data.user?.name || "");
+      setSkills(data.user?.skills || []);
+      setBio(data.user?.bio || "");
+      setImage(data.user?.image || "image.png");
       setPosts(data.posts || []);
       setProjects(data.projects || []);
       setPostCount(data.posts?.length || 0);
       setProjectCount(data.projects?.length || 0);
-
-      setCache("profileData", data);
     } catch (error) {
       console.error(error);
+      setError(true);
+      setMessage("Failed to load profile");
     }
   };
 
@@ -90,7 +63,7 @@ const Profile = () => {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(userId ? { userId } : {}),
-        }
+        },
       );
 
       const data = await res.json();
@@ -100,7 +73,6 @@ const Profile = () => {
       }
 
       setConnections(data.connections || []);
-      setCache("connectionsData", data.connections || []);
     } catch (err) {
       setError(true);
       setMessage(err.message || "Network error");
@@ -109,19 +81,6 @@ const Profile = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const cachedProfile = getCache("profileData");
-    const cachedConnections = getCache("connectionsData");
-
-    if (!cachedProfile) {
-      fetchProfileData();
-    }
-
-    if (!cachedConnections) {
-      fetchConnections();
-    }
-  }, []);
 
   useEffect(() => {
     if (!message) return;
@@ -145,7 +104,7 @@ const Profile = () => {
   };
 
   const sortedByName = [...connections].sort((a, b) =>
-    a.user.name.localeCompare(b.user.name)
+    a.user.name.localeCompare(b.user.name),
   );
 
   return (

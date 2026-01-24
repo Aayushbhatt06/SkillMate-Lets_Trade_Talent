@@ -18,14 +18,13 @@ const HomePage = () => {
         `${import.meta.env.VITE_BACKEND_URL}/api/fetchposts`,
         {
           method: "GET",
-        }
+        },
       );
       if (!res.ok) {
         alert("unable to fetch posts");
       }
       const data = await res.json();
       setPosts(data.posts);
-      localStorage.setItem("Posts", JSON.stringify(data.posts));
     } catch (error) {
       console.log(error);
     } finally {
@@ -60,13 +59,7 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    const cachedPosts = localStorage.getItem("Posts");
-
-    if (cachedPosts) {
-      setPosts(JSON.parse(cachedPosts));
-    } else {
-      fetchPosts();
-    }
+    fetchPosts();
     socket.connect();
     socket.on("connect", () => {
       console.log("Socket connected:", socket.id);
@@ -102,10 +95,8 @@ const HomePage = () => {
         </p>
       </div>
 
-      {/* Main Container with Gradient Background */}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
         <div className="container mx-auto max-w-7xl px-0 lg:px-8">
-          {/* Enhanced Mobile Tab Switcher */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-white/95 to-blue-50/95 backdrop-blur-lg pt-3 pb-3 px-4 lg:hidden border-b border-blue-100/50 shadow-sm">
             <div className="flex gap-2 bg-gradient-to-r from-slate-100 to-blue-50 rounded-2xl p-1.5 shadow-md border border-white/50">
               <button
@@ -161,7 +152,6 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Enhanced Feed Layout */}
           <div className="flex flex-col lg:flex-row lg:gap-8 lg:pt-6">
             <div
               className={`${
