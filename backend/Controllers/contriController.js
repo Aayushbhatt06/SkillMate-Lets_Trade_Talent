@@ -66,6 +66,27 @@ const sendContriReq = async (req, res) => {
     });
   }
 };
+const updateContributionsCache = async ({ ownerId, contriId, newStatus }) => {
+  const cacheKey = `contributions:${ownerId}`;
+  const cached = await client.get(cacheKey);
+  if (!cached) return;
+
+  const parsed = JSON.parse(cached);
+
+  parsed.data = parsed.data.map((project) => {
+    return {
+      ...project,
+      contributors: project.contributors
+        .map((c) => {
+          if (c.contriId.toString() !== contriId.toString()) return c;
+          return { ...c, status: newStatus };
+        })
+        .filter((c) => c.status !== "rejected"),
+    };
+  });
+
+  await client.setEx(cacheKey, 5 * 60, JSON.stringify(parsed));
+};
 
 const acceptContribution = async (req, res) => {
   try {
@@ -103,6 +124,12 @@ const acceptContribution = async (req, res) => {
 
     contribution.status = "accepted";
     await contribution.save();
+
+    await updateContributionsCache({
+      ownerId: userId,
+      contriId,
+      newStatus: "accepted",
+    });
 
     return res.status(200).json({
       message: "Contribution request accepted",
@@ -223,6 +250,12 @@ const rejectContribution = async (req, res) => {
 
     contribution.status = "rejected";
     await contribution.save();
+
+    await updateContributionsCache({
+      ownerId: userId,
+      contriId,
+      newStatus: "rejected",
+    });
 
     return res.status(200).json({
       message: "Contribution request rejected",
