@@ -15,14 +15,16 @@ const LoggedInOnly = require("./Middlewares/LoggedInOnly");
 const chatRoute = require("./Routes/chatRouter");
 const compression = require("compression");
 const ContributionRouter = require("./Routes/ContributionsRouter");
+const { connectRedis } = require("./utils/client");
 
 const server = http.createServer(app);
 initializeSocket(server);
+connectRedis();
 app.use(
   cors({
     origin: ["https://skillmate-plum.vercel.app", "http://localhost:5173"],
     credentials: true,
-  })
+  }),
 );
 app.use(cookieParser());
 require("dotenv").config();

@@ -14,7 +14,7 @@ const projectSkills = async (req, res) => {
       {
         $addFields: { matchCount: { $size: "$matchingSkills" } },
       },
-      { $sort: { matchCount: -1, createdAt: -1 } }, // sort by match first, then newest
+      { $sort: { matchCount: -1, createdAt: -1 } },
     ]);
 
     res.json({ 

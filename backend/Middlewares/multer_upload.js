@@ -18,6 +18,7 @@ const fileFilter = (req, file, cb) => {
     "video/mp4",
     "video/webm",
     "video/quicktime",
+    "video/x-matroska",
   ];
 
   if (allowedTypes.includes(file.mimetype)) {

@@ -3,6 +3,7 @@ const Like = require("../Models/Like");
 const Comment = require("../Models/Comments");
 const { uploadToCloudinary } = require("../utils/cloudinary");
 const mongoose = require("mongoose");
+const { client } = require("../utils/client");
 
 const addPost = async (req, res) => {
   try {
@@ -55,6 +56,27 @@ const fetchPosts = async (req, res) => {
   try {
     const limit = 20;
 
+    const cacheKey = "posts:feed:random";
+    const counterKey = "posts:feed:random:count";
+
+    const count = await client.incr(counterKey);
+
+    if (count === 1) {
+      await client.expire(counterKey, 60 * 10);
+    }
+
+    if (count <= 2) {
+      const cached = await client.get(cacheKey);
+      if (cached) {
+        return res.status(200).json({
+          success: true,
+          posts: JSON.parse(cached),
+          fromCache: true,
+          refreshCount: count,
+        });
+      }
+    }
+
     const postsAgg = await postModel.aggregate([
       { $sample: { size: limit } },
       {
@@ -72,7 +94,20 @@ const fetchPosts = async (req, res) => {
       select: "name email image",
     });
 
-    return res.status(200).json({ success: true, posts });
+    await client.set(cacheKey, JSON.stringify(posts), {
+      EX: 60 * 10,
+    });
+
+    await client.set(counterKey, 1, {
+      EX: 60 * 10,
+    });
+
+    return res.status(200).json({
+      success: true,
+      posts,
+      fromCache: false,
+      refreshCount: 3,
+    });
   } catch (err) {
     return res.status(500).json({
       message: "Server not responding",
