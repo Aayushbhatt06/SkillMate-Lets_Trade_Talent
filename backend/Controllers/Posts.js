@@ -65,7 +65,7 @@ const fetchPosts = async (req, res) => {
       await client.expire(counterKey, 60 * 10);
     }
 
-    if (count <= 2) {
+    if (count <= 3) {
       const cached = await client.get(cacheKey);
       if (cached) {
         return res.status(200).json({
@@ -166,7 +166,7 @@ const addComment = async (req, res) => {
 
 const likePost = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user._id.toString();
     const { postId } = req.body;
 
     if (!postId) {
@@ -175,6 +175,8 @@ const likePost = async (req, res) => {
         success: false,
       });
     }
+
+    const cacheKey = "posts:feed:random";
 
     const post = await postModel.findById(postId);
     if (!post) {
@@ -193,12 +195,10 @@ const likePost = async (req, res) => {
     let liked;
 
     if (existingLike) {
-      // UNLIKE
       await Like.deleteOne({ _id: existingLike._id });
       post.like = Math.max(post.like - 1, 0);
       liked = false;
     } else {
-      // LIKE
       await Like.create({
         userId,
         targetId: postId,
@@ -210,13 +210,37 @@ const likePost = async (req, res) => {
 
     await post.save();
 
+    // 🔥 UPDATE CACHED FEED IN-PLACE
+    const cachedPosts = await client.get(cacheKey);
+    if (cachedPosts) {
+      try {
+        const posts = JSON.parse(cachedPosts);
+
+        const updatedPosts = posts.map((p) => {
+          if (p._id.toString() === postId.toString()) {
+            return {
+              ...p,
+              like: post.like,
+              likedByMe: liked,
+            };
+          }
+          return p;
+        });
+
+        await client.set(cacheKey, JSON.stringify(updatedPosts), {
+          EX: 60 * 10,
+        });
+      } catch (e) {
+        // safety fallback
+        await client.del(cacheKey);
+      }
+    }
+
     const updatedPost = await postModel
       .findById(postId)
       .populate("userId", "name email image");
 
-    const comments = await Comment.find({ postId }).sort({
-      createdAt: -1,
-    });
+    const comments = await Comment.find({ postId }).sort({ createdAt: -1 });
 
     return res.status(200).json({
       message: liked ? "Like added successfully" : "Like removed",
@@ -228,12 +252,14 @@ const likePost = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({
       message: "Server error",
       success: false,
     });
   }
 };
+
 
 const fetchSinglePost = async (req, res) => {
   try {

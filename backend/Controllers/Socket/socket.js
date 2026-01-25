@@ -46,8 +46,14 @@ const initializeSocket = (server) => {
 
     socket.join(`user:${userId}`);
 
-    io.emit("userOnline", { userId });
-    socket.emit("onlineUsers", Array.from(onlineUsers.keys()));
+    // io.emit("userOnline", { userId });
+    // socket.emit("onlineUsers", Array.from(onlineUsers.keys()));
+    io.emit("onlineUsers", Array.from(onlineUsers.keys()));
+    socket.on("getOnlineUsers", () => {
+      const usersArray = Array.from(onlineUsers.keys());
+      socket.emit("onlineUsers", usersArray);
+    });
+
 
     socket.on("joinChat", ({ otherUserId }) => {
       if (!otherUserId) return;
@@ -253,12 +259,14 @@ const initializeSocket = (server) => {
 
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id, "user:", userId);
+
       if (onlineUsers.has(userId)) {
         const set = onlineUsers.get(userId);
         set.delete(socket.id);
+
         if (set.size === 0) {
           onlineUsers.delete(userId);
-          io.emit("userOffline", { userId });
+          io.emit("onlineUsers", Array.from(onlineUsers.keys()));
         }
       }
     });

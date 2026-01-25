@@ -179,6 +179,16 @@ const fetchConReq = async (req, res) => {
       });
     }
 
+    const cacheKey = `connections:requests:${userId}`;
+    const cachedRequests = await client.get(cacheKey);
+    if (cachedRequests) {
+      return res.status(200).json({
+        message: "Fetched Successfully",
+        success: true,
+        connections: JSON.parse(cachedRequests),
+      });
+    }
+
     const connections = await connectionModel
       .find({ fulfilled: false })
       .populate("users", "name image")
@@ -187,6 +197,8 @@ const fetchConReq = async (req, res) => {
     const filtered = connections.filter(
       (con) => con.users[1]?._id.toString() === userId,
     );
+
+    await client.setEx(cacheKey, 60, JSON.stringify(filtered));
 
     return res.status(200).json({
       message: "Fetched Successfully",

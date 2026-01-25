@@ -2,41 +2,32 @@ import React, { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Send } from "lucide-react";
 import { socket } from "../../utils/Socket";
-import { useDispatch } from "react-redux";
 
 const Message = () => {
   const location = useLocation();
   const navState = location.state;
+
   const userId = JSON.parse(localStorage.getItem("user"))?.id;
   const params = new URLSearchParams(location.search);
   const receiverId = params.get("id");
-  const dispatch = useDispatch();
-  const [isTyping, setIsTyping] = useState(false);
-  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const otherUser = navState?.otherUser;
 
-  const [newMsg, setNewMsg] = useState("");
   const [messages, setMessages] = useState([]);
+  const [newMsg, setNewMsg] = useState("");
   const [roomId, setRoomId] = useState(null);
+
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
-  const otherUser = navState.otherUser;
-
-  const msgAt = (createdAt) => {
-    return new Date(createdAt).toLocaleTimeString([], {
+  const msgAt = (createdAt) =>
+    new Date(createdAt).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
     });
-  };
-
-  const handleMessageReceived = (msg) => {
-    if (!roomId || msg.roomId === roomId) {
-      console.log(msg);
-      console.log(userId);
-      setMessages((prev) => [...prev, msg]);
-    }
-    socket.emit("markAsRead", { from: receiverId });
-  };
 
   const loadMessages = async () => {
     try {
@@ -44,79 +35,103 @@ const Message = () => {
         `${import.meta.env.VITE_BACKEND_URL}/chat/loadmsg`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ id: receiverId }),
-        }
+        },
       );
 
       const data = await res.json();
-      if (!res.ok) {
-        console.log(data.message || "Error occured in try block");
-      }
-      setMessages(data.chats);
+      if (res.ok) setMessages(data.chats || []);
     } catch (err) {
-      console.log(err || "Server Error");
+      console.error("Load messages error:", err);
     }
   };
 
   useEffect(() => {
     if (!receiverId) return;
 
-    loadMessages();
+    const handleConnect = () => {
+      // console.log("Socket connected:", socket.id);
+      socket.emit("getOnlineUsers");
+      socket.emit("joinChat", { otherUserId: receiverId });
+    };
+
+    const onJoinedChat = ({ roomId }) => setRoomId(roomId);
+
+    const onMessageReceived = (msg) => {
+      if (msg.roomId === roomId) {
+        setMessages((prev) => [...prev, msg]);
+      }
+    };
+
+    const onTyping = ({ userId }) => {
+      if (userId === receiverId) setIsOtherTyping(true);
+    };
+
+    const onStopTyping = ({ userId }) => {
+      if (userId === receiverId) setIsOtherTyping(false);
+    };
+
+    const onOnlineUsers = (users) => {
+      // console.log("ONLINE USERS RECEIVED:", users);
+      setOnlineUsers(new Set(users));
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("joinedChat", onJoinedChat);
+    socket.on("messageReceived", onMessageReceived);
+    socket.on("typing", onTyping);
+    socket.on("stopTyping", onStopTyping);
+    socket.on("onlineUsers", onOnlineUsers);
+
     if (!socket.connected) {
       socket.connect();
+    } else {
+      handleConnect();
     }
-    socket.emit("joinChat", { otherUserId: receiverId });
-
-    socket.on("joinedChat", ({ roomId }) => {
-      console.log("Joined room:", roomId);
-      setRoomId(roomId);
-    });
-    socket.on("messageReceived", handleMessageReceived);
 
     return () => {
-      socket.off("joinedChat");
-      socket.off("messageReceived", handleMessageReceived);
+      socket.off("connect", handleConnect);
+      socket.off("joinedChat", onJoinedChat);
+      socket.off("messageReceived", onMessageReceived);
+      socket.off("typing", onTyping);
+      socket.off("stopTyping", onStopTyping);
+      socket.off("onlineUsers", onOnlineUsers);
     };
+  }, [receiverId, roomId]);
+
+  useEffect(() => {
+    if (receiverId) {
+      socket.emit("markAsRead", { from: receiverId });
+    }
   }, [receiverId]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!receiverId) return;
 
-    const handleTyping = ({ roomId: rId, userId: senderId }) => {
-      if (senderId?.toString() === receiverId?.toString()) {
-        setIsOtherTyping(true);
-      }
-    };
+    if (newMsg.trim()) {
+      socket.emit("typing", { to: receiverId });
 
-    const handleStopTyping = ({ roomId: rId, userId: senderId }) => {
-      if (senderId?.toString() === receiverId?.toString()) {
-        setIsOtherTyping(false);
-      }
-    };
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("stopTyping", { to: receiverId });
+      }, 1200);
+    } else {
+      socket.emit("stopTyping", { to: receiverId });
+    }
 
-    socket.on("typing", handleTyping);
-    socket.on("stopTyping", handleStopTyping);
-    socket.emit("markAsRead", { from: receiverId });
-
-    return () => {
-      socket.off("typing", handleTyping);
-      socket.off("stopTyping", handleStopTyping);
-    };
-  }, [receiverId]);
+    return () => clearTimeout(typingTimeoutRef.current);
+  }, [newMsg]);
 
   const handleSend = () => {
     const text = newMsg.trim();
-    if (!text || !receiverId) return;
+    if (!text) return;
+
     socket.emit("sendMessage", {
       to: receiverId,
       text,
@@ -126,48 +141,10 @@ const Message = () => {
   };
 
   useEffect(() => {
-    if (!socket) return;
-    if (newMsg.trim().length > 0 && isTyping === false) {
-      socket.emit("typing", { to: receiverId });
-      setIsTyping(true);
-    }
-    if (newMsg.trim().length === 0 && isTyping === true) {
-      socket.emit("stopTyping", { to: receiverId });
-      setIsTyping(false);
-    }
-  }, [newMsg]);
+    loadMessages();
+  }, [receiverId]);
 
-  useEffect(() => {
-    if (!userId) {
-      const fetchUser = async () => {
-        try {
-          const res = await fetch(
-            `${import.meta.env.VITE_BACKEND_URL}/profile`,
-            {
-              method: "GET",
-              credentials: "include",
-            }
-          );
-          if (!res.ok) throw new Error("Failed to fetch user");
-          const data = await res.json();
-
-          const userPayload = {
-            id: data.user._id,
-            name: data.user.name,
-            email: data.user.email,
-            image: data.user.image,
-            skills: data.user.skills || [],
-          };
-
-          dispatch(login(userPayload));
-        } catch (err) {
-          console.error("User fetch error:", err);
-        }
-      };
-      socket.emit("markAsRead", { from: receiverId });
-      fetchUser();
-    }
-  }, []);
+  const isOnline = onlineUsers.has(receiverId);
 
   return (
     <>
@@ -181,6 +158,9 @@ const Message = () => {
           <div className="flex flex-col min-w-0 flex-1">
             <p className="text-base sm:text-xl font-semibold text-white truncate">
               {otherUser.name}
+              <span
+                className={`ml-2 inline-block h-2 w-2 rounded-full ${isOnline ? "bg-green-500" : "bg-gray-500"}`}
+              />
             </p>
 
             {isOtherTyping && (
