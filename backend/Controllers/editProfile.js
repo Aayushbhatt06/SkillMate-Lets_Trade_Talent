@@ -41,9 +41,9 @@ const editProfile = async (req, res) => {
     await user.save();
 
     const cacheKey = `user:profile:${userId}`;
-    await client.set(cacheKey, JSON.stringify(user), {
-      EX: 60 * 15,
-    });
+    const inspectCacheKey = `user:profile:inspect:${userId}`;
+    await client.del(cacheKey);
+    await client.del(inspectCacheKey);
 
     return res.status(200).json({
       success: true,
