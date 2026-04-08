@@ -15,10 +15,10 @@ const ProjectCard = ({ project }) => {
     project.userId && typeof project.userId === "object"
       ? project.userId
       : {
-          _id: project.userId || "",
-          name: project.username || "Unknown User",
-          image: project.profilePic || "image.png",
-        };
+        _id: project.userId || "",
+        name: project.username || "Unknown User",
+        image: project.profilePic || "image.png",
+      };
 
   const timeAgo = (dateString) => {
     const date = new Date(dateString);
@@ -150,9 +150,9 @@ const ProjectCard = ({ project }) => {
           </div>
 
           {project.image ? (
-            <div className="image">
+            <div onDoubleClick={() => navigate(`/load-project?projId=${project._id}`)} className="image">
               <img
-                className="w-full object-cover rounded-b-lg"
+                className="w-full object-cover cursor-pointer rounded-b-lg"
                 src={project.image}
                 alt="project"
               />
