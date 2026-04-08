@@ -10,6 +10,7 @@ const {
   likePost,
 } = require("../Controllers/Posts.js");
 const addProject = require("../Controllers/addProject.js");
+const { fetchSingleProject } = require("../Controllers/fetchSingleProject.js");
 const projectSkills = require("../Controllers/projectSkills.js");
 const getTagLines = require("../Controllers/tagline.js");
 const uploader = require("../Middlewares/multer_upload.js");
@@ -26,6 +27,7 @@ router.get("/skillproject", projectSkills);
 router.get("/tagline", getTagLines);
 router.post("/fetchproject", LoggedInOnly, fetchProjects);
 router.post("/load-post", LoggedInOnly, fetchSinglePost);
+router.post("/load-project", LoggedInOnly, fetchSingleProject);
 
 router.post("/short", LoggedInOnly, uploader("video"), uploadShort);
 router.get("/getshort", LoggedInOnly, getShorts);

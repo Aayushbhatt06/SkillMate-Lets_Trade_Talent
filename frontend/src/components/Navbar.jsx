@@ -24,17 +24,31 @@ const Navbar = () => {
   const [showMenu, setShowMenu] = useState(false);
 
   const menuRef = useRef(null);
+  const searchContainerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const [searchInput, setSearch] = useState("");
-  const handelOnChange = (e) => setSearch(e.target.value);
+  const handelOnChange = (e) => {
+    setSearch(e.target.value);
+    setShowSearchResults(true);
+  };
 
   /* =========================
-     CLICK OUTSIDE MENU
+     CLICK OUTSIDE MENU & SEARCH
   ========================== */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowMenu(false);
+      }
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target)
+      ) {
+        setShowSearchResults(false);
       }
     };
 
@@ -179,8 +193,9 @@ const Navbar = () => {
       )}
 
       <div
+        ref={searchContainerRef}
         className={`users ${
-          searchInput.length > 2 ? "block" : "hidden"
+          showSearchResults && searchInput.length > 2 ? "block" : "hidden"
         } fixed left-1/2 -translate-x-1/2 top-16 md:top-20
         w-[90vw] md:w-[30vw] max-h-[350px] overflow-y-auto 
         z-50 bg-white shadow-lg border border-gray-200 rounded-lg
@@ -189,6 +204,10 @@ const Navbar = () => {
         {searchRes.map((res) => (
           <div
             key={res._id}
+            onClick={() => {
+              setSearch("");
+              navigate(`/load-profile?id=${res._id}`);
+            }}
             className="flex justify-between items-center px-3 md:px-4 py-3 hover:bg-gray-50 transition cursor-pointer"
           >
             <div className="flex gap-2 md:gap-3 items-center">
@@ -203,8 +222,11 @@ const Navbar = () => {
             </div>
 
             <button
-              onClick={() => handleConnection(res._id)}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm shadow-sm whitespace-nowrap"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleConnection(res._id);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 cursor-pointer transition text-white px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm shadow-sm whitespace-nowrap"
             >
               Connect
             </button>
@@ -233,6 +255,8 @@ const Navbar = () => {
               </span>
 
               <input
+                ref={searchInputRef}
+                onFocus={() => setShowSearchResults(true)}
                 onChange={handelOnChange}
                 value={searchInput}
                 type="search"

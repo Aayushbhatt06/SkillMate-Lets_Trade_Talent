@@ -16,6 +16,7 @@ import Contribution from "./components/Contribution";
 import LandingPage from "./components/Landing";
 import Shorts from "./components/Shorts";
 import UpShort from "./components/UpShort";
+import InspectProject from "./components/InspectProject";
 
 const Layout = () => {
   return (
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
       { path: "/contribution", element: <Contribution /> },
       { path: "/shorts", element: <Shorts /> },
       { path: "/upshort", element: <UpShort /> },
+      { path: "/load-project", element: <InspectProject /> },
     ],
   },
 ]);
